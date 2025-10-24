@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"go-ecommerce/internal/api/rest"
+	"go-ecommerce/internal/dto"
+	"go-ecommerce/internal/service"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,6 +11,7 @@ import (
 
 type UserHandler struct {
 	// svc UserService
+	svc service.UserService
 }
 
 func SetupUserRoutes(rh *rest.RestHandler) {
@@ -16,7 +19,10 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 	app := rh.App
 
 	// create an instance of user service & inject to handler
-	handler := UserHandler{}
+	svc := service.UserService{}
+	handler := UserHandler{
+		svc: svc,
+	}
 
 	// Public endpoints
 	app.Post("/register", handler.Register)
@@ -38,8 +44,24 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 }
 
 func (h *UserHandler) Register(ctx *fiber.Ctx) error {
+	// to create user
+	user := dto.UserSignup{}
+	err := ctx.BodyParser(&user)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "please provide valid inputs",
+		})
+	}
+
+	token, err := h.svc.SignUp(user)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "error on sign up",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{
-		"message": "User registered successfully",
+		"message": token,
 	})
 }
 
